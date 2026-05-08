@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Paginator</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/app.css">
+    <link rel="stylesheet" href="static/css/responsive.css">
+</head>
+
+<body>
+    <div id="loading">
+        <div class="load-card">
+            <div class="spin"></div>
+            <p id="loading-msg">Loading...</p>
+        </div>
+    </div>
+
+    <div id="toast">
+        <i class="ti fa-solid fa-circle-check"></i>
+        <span class="tm" id="tm">--</span>
+    </div>
+
+    <header class="hdr">
+        <div class="hdr-logo"><i class="fa-solid fa-scissors"></i></div>
+        <span class="hdr-name">PDF Paginator</span>
+        <div class="hdr-pills">
+            <div class="pill" id="pp"><i class="fa-regular fa-file-lines"></i><span id="sp">-- pages</span></div>
+            <div class="pill" id="pc"><i class="fa-solid fa-scissors"></i><span id="sc">-- cuts</span></div>
+            <div class="pill" id="pd"><i class="fa-solid fa-ruler-combined"></i><span id="sd">--</span></div>
+        </div>
+        <div class="hdr-end">
+            <button class="icon-btn" id="theme-btn" title="Toggle light/dark"><i class="fa-solid fa-moon"
+                    id="theme-icon"></i></button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <aside class="sidebar">
+            <div class="s-blk">
+                <div class="s-lbl"><i class="fa-solid fa-file-arrow-up"></i> Source</div>
+                <div class="dz" id="dz">
+                    <div class="dz-ico"><i class="fa-solid fa-file-pdf"></i></div>
+                    <p><strong>Drop a PDF here</strong> or click to browse</p>
+                </div>
+                <input type="file" id="fi" accept=".pdf">
+                <div class="ftag" id="ftag">
+                    <i class="fi fa-solid fa-file-pdf"></i>
+                    <span class="fn" id="fn">--</span>
+                    <span class="fc" onclick="document.getElementById('fi').click()">Change</span>
+                </div>
+            </div>
+
+            <div class="s-blk">
+                <div class="s-lbl"><i class="fa-solid fa-sliders"></i> Controls</div>
+                <div class="btn-row">
+                    <button class="btn-o btn-ghost" id="btn-reset" disabled><i class="fa-solid fa-rotate-left"></i>
+                        Reset</button>
+                    <button class="btn-o btn-red" id="btn-clear" disabled><i class="fa-solid fa-trash-can"></i>
+                        Clear</button>
+                </div>
+                <div class="ctl-row">
+                    <label class="switch" for="auto-cuts">
+                        <input type="checkbox" id="auto-cuts">
+                        <span class="slider"></span>
+                    </label>
+                    <div class="ctl-text">
+                        <span>Auto cuts</span>
+                        <span class="ctl-note">(slower)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cut-scroll" id="cut-list">
+                <div class="cut-empty"><i class="fa-regular fa-file-pdf"></i>Load a PDF to begin</div>
+            </div>
+
+            <div class="out-blk">
+                <label class="f-lbl" for="out-name">Output filename</label>
+                <input type="text" class="f-inp" id="out-name" placeholder="output_file">
+                <button class="btn-a btn-accent btn-full" id="btn-dl" disabled>
+                    <i class="fa-solid fa-download"></i> Download Paginated PDF
+                </button>
+            </div>
+
+        </aside>
+
+        <div class="canvas-col">
+            <div class="c-bar">
+                <div class="c-hint">
+                    <i class="fa-solid fa-hand-pointer"></i><span>Click to add cut</span>
+                    <span class="sep"></span>
+                    <i class="fa-solid fa-up-down"></i><span>Drag to reposition</span>
+                    <span class="sep"></span>
+                    <kbd>Del</kbd><span>remove selected</span>
+                    <span class="sep"></span>
+                    <kbd>Esc</kbd><span>deselect</span>
+                </div>
+                <div class="zoom-ctl">
+                    <button class="z-btn" id="z-out" title="Zoom out"><i class="fa-solid fa-minus"></i></button>
+                    <span class="z-val" id="z-val">100%</span>
+                    <button class="z-btn" id="z-in" title="Zoom in"><i class="fa-solid fa-plus"></i></button>
+                    <button class="z-btn" id="z-fit" title="Reset zoom"
+                        style="border-left:1px solid var(--border);margin-left:2px;padding-left:2px;border-radius:0 5px 5px 0">
+                        <i class="fa-solid fa-arrows-to-dot"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="c-scroll" id="c-scroll">
+                <div class="pdf-pad">
+                    <div id="pdf-container">
+                        <div id="empty-state">
+                            <i class="fa-regular fa-file-pdf"></i>
+                            <p>No PDF loaded</p>
+                        </div>
+                        <canvas id="pdf-canvas"></canvas>
+                        <svg id="cut-overlay"></svg>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="static/js/drag-drop.js"></script>
+    <script src="static/js/pdf-viewer.js"></script>
+    <script src="static/js/app.js"></script>
+</body>
+
+</html>
