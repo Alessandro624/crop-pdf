@@ -1,14 +1,15 @@
 # PDF Paginator
 
-A tool for automatically paginating vertical-scroll PDFs (like tablet notes) into standard-sized pages.
+A fast, multi-tab web application and CLI tool for paginating vertical-scroll PDFs (such as tablet notes) into standard page formats with smart whitespace detection and online preference learning.
 
 ## Features
 
-- **Automatic Title Detection**: Detects titles using either text metadata (pdfplumber) or visual pixel analysis (PyMuPDF + NumPy)
-- **Interactive Web UI**: Drag-and-drop PDF upload with visual cut point editing
-- **Smart Pagination**: DP algorithm groups sections to minimize deviation from A4 size
-- **Dark Bar Removal**: Automatically cleans annotation artifacts from PDFs
-- **Multiple Modes**: Auto-detect, force text mode, or force visual mode
+- **Format-Based Pagination**: Supports A4/A3 Vertical (`1:1.414`), Tablet 4:3 (`1:1.333`), Vertical 16:9 (`1:1.778`), A4/A3 Landscape (`1:0.707`), and Square (`1:1`).
+- **Smart Whitespace Snap**: Analyzes grayscale pixel density (via PyMuPDF + NumPy) within a tolerance window around the target format height to avoid cutting through text, formulas, or diagrams.
+- **Online Preference Learning (Human Feedback)**: Automatically adjusts its internal scoring weights whenever you manually drag and refine proposed cuts in the web UI.
+- **Multi-Tab & Security Hardened**: Isolated per-tab `job_id` sessions with thread-safe LRU eviction and automatic `/tmp` cleanup.
+- **Maximum PDF Compression**: Deduplicates shared streams (`garbage=4`) and compresses streams, images, and fonts (`deflate=True`, `deflate_images=True`, `deflate_fonts=True`).
+- **Dark Bar Removal**: Automatically cleans dark selection/annotation bars left in exported notes.
 
 ## Installation
 
@@ -18,11 +19,10 @@ pip install -r requirements.txt
 
 Requirements:
 
-- Python 3.7+
-- flask
-- pdfplumber
-- pymupdf
-- numpy
+- Python 3.10+
+- `flask`
+- `pymupdf`
+- `numpy`
 
 ## Usage
 
@@ -32,68 +32,40 @@ Requirements:
 python3 app.py
 ```
 
-Then open <http://localhost:5000> in your browser.
+Open [http://localhost:5000](http://localhost:5000) in your browser:
 
-1. Drag and drop a PDF or click to browse
-2. Toggle "Auto cuts" for automatic cut point detection
-3. Click the PDF to add manual cut points
-4. Drag cut lines to reposition them
-5. Download the paginated PDF
+1. Drag and drop a PDF or click to browse (multiple browser tabs are supported independently).
+2. Choose your **Target Format** (A4, Tablet 4:3, 16:9, etc.) and **Cut Mode** (*Smart Snap*, *Exact Format Height*, or *Manual Only*).
+3. Click on the preview canvas to add cuts, or drag existing cut lines to reposition them.
+4. Click **Download Paginated PDF** (any manual adjustments to auto-cuts will train the Smart Snap weights).
 
 ### Command Line
 
 ```bash
-# Automatic mode (detects best method)
+# Default: A4 format with Smart Whitespace Snap
 python3 crop_pdf.py input.pdf
 
-# Specify output name
-python3 crop_pdf.py input.pdf -o output.pdf
+# Specify output file and target format
+python3 crop_pdf.py input.pdf -o output.pdf --format tablet_4_3
 
-# Force text mode
-python3 crop_pdf.py input.pdf --mode text
+# Cut at exact mathematical format height (disable smart whitespace search)
+python3 crop_pdf.py input.pdf --format a4 --exact
 
-# Force visual mode
-python3 crop_pdf.py input.pdf --mode visual
-
-# Debug colors (see what the tool detects)
-python3 crop_pdf.py input.pdf --debug-colors
+# Disable dark bar cleanup
+python3 crop_pdf.py input.pdf --no-clean
 ```
 
-## Configuration
+### CLI Options
 
-### Text Mode Options
+- `-o, --output`: Output PDF path (default: `<input>_paginated.pdf`)
+- `-f, --format`: Target format aspect ratio (`a4`, `tablet_4_3`, `16_9`, `a4_land`, `square`)
+- `--exact`: Cut at exact format height without searching for whitespace
+- `--no-clean`: Skip dark annotation bar removal
+- `-q, --quiet`: Suppress console output
 
-- `--min-size`: Minimum font size for title detection (default: 13.5)
-- `--max-x0`: Maximum left margin for title alignment (default: 50.0 pt)
-- `--colors`: Custom title colors as "r,g,b;r,g,b" (default: blue and red)
-
-### Visual Mode Options
-
-- `--zoom`: Rasterization factor (default: 1.5)
-- `--min-band-h`: Minimum colored band height (default: 14.0 pt)
-- `--max-band-h`: Maximum colored band height (default: 50.0 pt)
-- `--min-ratio`: Minimum width fraction with colored pixels (default: 0.08)
-- `--hue-blue`: Blue hue range as "min,max" (default: "195,225")
-- `--hue-red`: Red hue range as "wrap,max" (default: "330,15")
-
-### Pagination Options
-
-- `--padding`: Space before each title in the cut (default: 14.0 pt)
-- `--merge-gap`: Minimum gap between titles (default: 60.0 pt)
-- `--max-ratio`: Maximum page height as multiple of A4 (default: 1.15)
-- `--min-last`: Minimum height of last page before merging (default: 120.0 pt)
-
-## How It Works
-
-1. **Clean**: Removes dark annotation bars from the PDF
-2. **Detect Mode**: Analyzes the PDF to choose text or visual mode
-3. **Find Titles**: Identifies title positions using color/size analysis
-4. **Find Cut Points**: Searches for optimal whitespace lines near titles
-5. **Compute Pages**: Uses DP to group sections into A4-sized pages
-6. **Generate PDF**: Creates the output PDF with proper page breaks
-
-## Testing
+## Testing & Linting
 
 ```bash
 python3 -m pytest tests/ -v
+flake8 .
 ```
