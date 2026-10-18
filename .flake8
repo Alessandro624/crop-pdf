@@ -1,8 +1,12 @@
 [flake8]
-max-line-length = 120
+max-line-length = 135
 ignore = E203, W503
 exclude =
     .git,
     __pycache__,
     .pytest_cache,
-    .claude
+    .venv,
+    venv,
+    env,
+    build,
+    dist
