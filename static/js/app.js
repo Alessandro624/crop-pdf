@@ -1,4 +1,5 @@
 const S = {
+    jobId: null,
     H: 0, W: 0,
     baseZoom: 1,
     uiZoom: 1,
@@ -71,7 +72,7 @@ G('z-out').addEventListener('click', () => {
     if (zoomIdx > 0) { zoomIdx--; applyZoom(); }
 });
 G('z-fit').addEventListener('click', () => {
-    zoomIdx = 5; applyZoom(); // reset to 100%
+    zoomIdx = 5; applyZoom();
 });
 
 scroll.addEventListener('wheel', e => {
@@ -83,7 +84,9 @@ scroll.addEventListener('wheel', e => {
 }, { passive: false });
 
 const dz = G('dz'), fi = G('fi');
-const autoCuts = G('auto-cuts');
+const pageFormat = G('page-format');
+const cutMode = G('cut-mode');
+
 dz.addEventListener('click', () => fi.click());
 fi.addEventListener('change', e => e.target.files[0] && upload(e.target.files[0]));
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
@@ -94,20 +97,50 @@ dz.addEventListener('drop', e => {
     f && f.type === 'application/pdf' ? upload(f) : toast('Please select a PDF file', 'err');
 });
 
+async function recalculateCuts() {
+    if (!S.loaded || !S.jobId) return;
+    showLoad('Recalculating cuts...');
+    try {
+        const r = await fetch('/recalculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                job_id: S.jobId,
+                page_format: pageFormat.value,
+                cut_mode: cutMode.value,
+            }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const d = await r.json();
+        S.cuts = [...d.cut_points].sort((a, b) => a - b);
+        S.origCuts = [...S.cuts];
+        S.sel = null;
+        drawCuts(); drawList(); stats();
+        toast(`Format updated (${d.cut_points.length} cuts)`);
+    } catch (e) {
+        toast('Error: ' + e.message, 'err');
+    } finally { hideLoad(); }
+}
+
+pageFormat.addEventListener('change', recalculateCuts);
+cutMode.addEventListener('change', recalculateCuts);
+
 async function upload(file) {
-    showLoad(autoCuts.checked ? 'Analyzing PDF...' : 'Loading preview...');
+    showLoad('Analyzing & rendering PDF...');
     G('empty-state').style.display = 'none';
     G('fn').textContent = file.name;
     G('ftag').classList.add('show');
 
     const fd = new FormData();
     fd.append('file', file);
-    fd.append('auto_cut', autoCuts.checked ? '1' : '0');
+    fd.append('page_format', pageFormat.value);
+    fd.append('cut_mode', cutMode.value);
     try {
         const r = await fetch('/upload', { method: 'POST', body: fd });
         if (!r.ok) throw new Error(await r.text());
         const d = await r.json();
 
+        S.jobId = d.job_id;
         S.H = d.total_height;
         S.W = d.page_width;
         S.baseZoom = d.zoom_preview;
@@ -243,7 +276,6 @@ function setupDrag(g, idx) {
         const np = Math.max(5, Math.min(S.H - 5, sp + ptp(e.clientY - sy)));
         const currentY = tpx(np);
 
-        // Muoviamo solo la linea fantasma
         if (ghostLine) {
             sa(ghostLine, { y1: currentY, y2: currentY });
         }
@@ -259,7 +291,6 @@ function setupDrag(g, idx) {
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
 
-        // Rimuoviamo la linea fantasma dal DOM
         if (ghostLine) {
             ghostLine.remove();
             ghostLine = null;
@@ -363,22 +394,23 @@ G('btn-clear').addEventListener('click', () => {
 });
 
 G('btn-dl').addEventListener('click', async () => {
-    if (!S.loaded) return;
+    if (!S.loaded || !S.jobId) return;
     const name = outName.value.trim() || 'output';
     showLoad('Generating PDF...');
     try {
         const r = await fetch('/paginate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cut_points: S.cuts, name }),
+            body: JSON.stringify({ job_id: S.jobId, cut_points: S.cuts, name }),
         });
         if (!r.ok) throw new Error(await r.text());
+        const learned = r.headers.get('X-Feedback-Learned') === '1';
         const a = Object.assign(document.createElement('a'), {
             href: URL.createObjectURL(await r.blob()),
             download: name.endsWith('.pdf') ? name : name + '.pdf',
         });
         a.click(); URL.revokeObjectURL(a.href);
-        toast(`${name}.pdf downloaded`);
+        toast(learned ? `${name}.pdf saved (preferences updated!)` : `${name}.pdf downloaded`);
     } catch (e) {
         toast('Download error: ' + e.message, 'err');
     } finally { hideLoad(); }

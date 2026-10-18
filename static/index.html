@@ -8,10 +8,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="static/css/app.css">
-    <link rel="stylesheet" href="static/css/responsive.css">
 </head>
 
 <body>
@@ -58,22 +56,28 @@
             </div>
 
             <div class="s-blk">
-                <div class="s-lbl"><i class="fa-solid fa-sliders"></i> Controls</div>
+                <div class="s-lbl"><i class="fa-solid fa-sliders"></i> Format & Auto-Cut</div>
+                <label class="f-lbl" for="page-format">Target Format</label>
+                <select class="f-inp" id="page-format" style="margin-bottom:8px;cursor:pointer">
+                    <option value="a4" selected>A4 / A3 Vertical (1 : 1.414)</option>
+                    <option value="tablet_4_3">Tablet 4:3 Vertical (1 : 1.333)</option>
+                    <option value="16_9">Vertical 16:9 (1 : 1.778)</option>
+                    <option value="a4_land">A4 / A3 Landscape (1 : 0.707)</option>
+                    <option value="square">Square (1 : 1)</option>
+                </select>
+
+                <label class="f-lbl" for="cut-mode">Cut Mode</label>
+                <select class="f-inp" id="cut-mode" style="margin-bottom:10px;cursor:pointer">
+                    <option value="smart" selected>Smart Snap (Whitespace + ML)</option>
+                    <option value="exact">Exact Format Height (Fixed)</option>
+                    <option value="manual">Manual Only (No auto cuts)</option>
+                </select>
+
                 <div class="btn-row">
                     <button class="btn-o btn-ghost" id="btn-reset" disabled><i class="fa-solid fa-rotate-left"></i>
                         Reset</button>
                     <button class="btn-o btn-red" id="btn-clear" disabled><i class="fa-solid fa-trash-can"></i>
                         Clear</button>
-                </div>
-                <div class="ctl-row">
-                    <label class="switch" for="auto-cuts">
-                        <input type="checkbox" id="auto-cuts">
-                        <span class="slider"></span>
-                    </label>
-                    <div class="ctl-text">
-                        <span>Auto cuts</span>
-                        <span class="ctl-note">(slower)</span>
-                    </div>
                 </div>
             </div>
 
@@ -129,10 +133,6 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="static/js/drag-drop.js"></script>
-    <script src="static/js/pdf-viewer.js"></script>
     <script src="static/js/app.js"></script>
 </body>
 
